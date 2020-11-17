@@ -1,0 +1,15 @@
+{
+  "name": "database",
+  "version": "1.0.0",
+  "description": "projeto para melhorar as querys do firebird",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "firebird",
+    "sql"
+  ],
+  "author": "Lucas Silva de Souza <lucass.souza750@gmail.com>",
+  "license": "MIT"
+}
