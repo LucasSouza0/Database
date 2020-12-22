@@ -1,6 +1,6 @@
 # Descrição
   Projeto para facilitar a conexão e a execução de querys no banco de dados Firebird.
-  Esse projeto foi escrito a partir do proejeto [node-firebird](https://www.npmjs.com/package/node-firebird).
+  Esse projeto foi escrito a partir do projeto [node-firebird](https://www.npmjs.com/package/node-firebird).
 
 # Instalação:
     npm install lucassouza0-database
