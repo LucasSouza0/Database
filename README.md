@@ -1,25 +1,27 @@
-# Exemplo:
-# Markdown
-  import {Router} from 'express';
-  import { Connection, Transaction } from 'lucassouza0-database';
-  const appRouter = Router();
+# Descrição
+  Projeto para facilitar a conexão e a execução de querys no banco de dados Firebird.
+  Esse projeto foi escrito a partir do proejeto [node-firebird](https://www.npmjs.com/package/node-firebird).
 
-  const connection = new Connection({
-    database: 'C:\\banco\\DADOS.FDB',
-  });
+# Instalação:
+    npm install lucassouza0-database
+    or
+    yarn add lucassouza0-database
+  
+# Modo de uso
+    import { Connection, Transaction } from 'lucassouza0-database';
+    const connection = new Connection({database: 'C:\\banco\\DADOS.FDB'});
 
-  appRouter.post('/', async (request, response) => {
+# Exemplo de POST
     const conexao = await connection.Connect();
-
     if (!conexao) {
-      return response.json({message: 'falha na conexao'});
+      return 'falha na conexao';
     }
 
     const transaction = new Transaction(conexao);
     const tra = await transaction.InitializeTransition();
 
     if (!tra) {
-      return response.json({message: 'falha na criação da transação'});
+      return 'falha na criação da transação';
     }
 
     const post = await transaction.post({
@@ -41,25 +43,21 @@
 
     if (!post) {
       transaction.rollback(tra);
-      return response.json({message: 'erro'});
+      return 'erro'
     }
     transaction.commit(tra);
     connection.Disconnect(conexao);
-    return response.json({message: 'sucesso'});
-  });
+    return 'sucesso';
 
-  appRouter.put('/', async (request, response) => {
+# Exemplo de PUT
     const conexao = await connection.Connect();
-
     if (!conexao) {
-      return response.json({message: 'falha na conexao'});
+      return 'falha na conexao';
     }
-
     const transaction = new Transaction(conexao);
     const tra = await transaction.InitializeTransition();
-
     if (!tra) {
-      return response.json({message: 'falha na criação da transação'});
+      return 'falha na criação da transação';
     }
 
     const put = await transaction.update({
@@ -81,24 +79,22 @@
 
     if (!put) {
       transaction.rollback(tra);
-      return response.json({message: 'erro'});
+      return 'erro';
     }
     transaction.commit(tra);
     connection.Disconnect(conexao);
-    return response.json({message: 'sucesso'});
-  });
-
-  appRouter.get('/', async (request, response) => {
+    return 'sucesso';
+    
+# Exemplo de GET
     const conexao = await connection.Connect();
-
     if (!conexao) {
-      return response.json({message: 'falha na conexao'});
+      return 'falha na conexao';
     }
     const transaction = new Transaction(conexao);
     const tra = await transaction.InitializeTransition();
 
     if (!tra) {
-      return response.json({message: 'falha na criação da transação'});
+      return 'falha na criação da transação';
     }
 
     const {dados, isError} = await transaction.find({
@@ -132,25 +128,22 @@
     
     if (isError) {
       transaction.rollback(tra);
-      return response.json({message: 'erro'});
+      return 'erro';
     }
     transaction.commit(tra);
     connection.Disconnect(conexao);
-    return response.json(dados);
-  });
-
-  appRouter.delete('/', async (request, response) => {
+    return dados;
+    
+# Exemplo de DELETE
     const conexao = await connection.Connect();
-
     if (!conexao) {
       return response.json({message: 'falha na conexao'});
     }
-
     const transaction = new Transaction(conexao);
     const tra = await transaction.InitializeTransition();
-
+    
     if (!tra) {
-      return response.json({message: 'falha na criação da transação'});
+      return 'falha na criação da transação';
     }
 
     const deletar = await transaction.delete({
@@ -171,12 +164,8 @@
 
     if (!deletar) {
       transaction.rollback(tra);
-      return response.json({message: 'erro'});
+      return 'erro';
     }
     transaction.commit(tra);
     connection.Disconnect(conexao);
-    return response.json({message: 'sucesso'});
-  });
-
-  export default appRouter;
-  
+    return 'sucesso';
