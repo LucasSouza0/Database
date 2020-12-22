@@ -1,22 +1,63 @@
-import utf8_decode from 'locutus/php/xml/utf8_decode';
-import utf8_encode from 'locutus/php/xml/utf8_encode';
 import { format } from "date-fns";
+import { base64 } from './Base64';
 
 interface Props {
   value: string;
   format: string;
 }
 
-export function FormatString(value: Buffer) {
-  if (process.env.UTF8DEFINIDO == 'S') {
-    value = utf8_encode(value).trim();
-  } else if (value && value.length > 0) {
-    value = utf8_encode(String.fromCharCode.apply(null, new Uint16Array(value))).trim();
+interface PropsFormatString {
+  value: Buffer;
+  valueAux?: any;
+  obj?: boolean;
+}
+
+export async function FormatString({value, valueAux, obj}: PropsFormatString) {
+  let response: string = '';
+  if (typeof value == 'number' || typeof value == 'boolean') {
+    return value;
   }
-  if (value && value.toString() == '-0.1') {
-    value = utf8_encode('0').trim();
+  
+  if (typeof value == 'object' && !obj) {
+    try {
+      response = format(new Date(value.toString().trim()), 'dd/MM/yyyy HH:mm');
+    } catch (err) {
+      if (!value) {
+        response = 'null';  
+      } else {
+        response = value.toString().trim();
+      }
+    } 
+    return response;
   }
-  return value ? utf8_decode(value) : '';
+
+  if (typeof value == 'function' && valueAux) {
+    return new Promise<string>((resolve) => { 
+      let buffer: any;
+      valueAux(function(err: Error, name: any, e: any) {
+        if (err) {
+          resolve('');
+          return;
+        }
+
+        let buffers: any[] = [];
+        e.on('data', function(chunk: any) {
+          buffers.push(chunk);
+        });
+        e.once('end', function() {
+          buffer = Buffer.concat(buffers);
+          const isPicture = /xpacket/gi.test(buffer.toString());
+          if (isPicture) {
+            resolve(base64(buffer));
+          } else {
+            resolve(buffer.toString());
+          }
+        });
+      });
+    });
+  }
+  
+  return response;
 }
 
 export function FormatDate({format: formato, value}: Props): string {

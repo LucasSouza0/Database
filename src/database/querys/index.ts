@@ -1,57 +1,83 @@
-import {iPropsInsert, iPropsDelete, iPropsSelect} from '../../interfaces';
-import Characters from '../../util/specialCharacters';
+import {iPropsInsert, iPropsDelete, iPropsSelect, iFieldsSelect, iPropsUpdate} from '../../interfaces';
 
 class Querys {
-  Insert({campos, update, table}: iPropsInsert) {
+  Insert({fields, update, table}: iPropsInsert): {SQL: string, params: any} {
     let SQL = '';
     let colunas = '';
     let valores = '';
     let separador = '';
     let inicioSQl = update ? 'UPDATE OR INSERT INTO' : 'INSERT INTO';
-    campos.map((row, index) => {
-      row.valor = row.valor.toString();
-      row.valor = SQLInjection(row.valor);
+    const params: any = [];
+    fields.map((row, index) => {
+      row.value = row.value.toString();
       separador = index == 0 ? '' : ', ';
-      colunas += separador + row.campo;
-      valores += separador + "'" + row.valor + "'";
+      colunas += `${separador}${row.field}`;
+      valores += `${separador}?`;
+      params.push(row.value);
     });
-  
     SQL = `${inicioSQl} ${table} (${colunas}) VALUES (${valores})`;
-    return SQL;
+    return {SQL: SQL, params: params};
   }
 
-  Select({ table, fields, where, orderBy, first, join, groupBy }: iPropsSelect): string {
+  Update({fields, where, table}: iPropsUpdate): {SQL: string, params: any} {
+    let SQL = '';
+    let colunas = '';
+    let separador = '';
+    let descWhere = '';
+    const params: any = [];
+    fields.map((row, index) => {
+      row.value = row.value.toString();
+      separador = index == 0 ? '' : ', ';
+      colunas += `${separador}${row.field} = ?`;
+      params.push(row.value);
+    });
+    if (where) {
+      descWhere = 'WHERE ';
+      where.map((row, index) => {
+        row.condition = row.condition ? row.condition : 'AND';
+        row.logicalOperator = row.logicalOperator ? row.logicalOperator : '=';
+        descWhere += index != 0 ? ` ${row.condition}` : '';
+        if (row.logicalOperator == 'between') {
+          descWhere += ` ${row.field} ${row.logicalOperator} ? AND ?`;  
+          params.push(row.initialDate);
+          params.push(row.finalDate);
+        } else {
+          descWhere += ` ${row.field} ${row.logicalOperator} ?`;
+          params.push(row.value);
+        }
+      });
+    }
+    SQL = `UPDATE ${table} SET ${colunas} ${descWhere}`;
+    return {SQL: SQL, params: params};
+  }
+
+  Select({ table, fields, where, orderBy, first, join, groupBy }: iPropsSelect): {SQL: string, params: any, fields: iFieldsSelect[]} {
     let SQL = '';
     let camposSelect = '';
-    let camposWhere = '';
-    let descFirst = '';
-    let descOrdem = '';
-    let descGroup = '';
+    let descFirst = first ? `FIRST ${first}` : '';
+    let descOrdem = orderBy ? `ORDER BY ${orderBy}` : '';
+    let descGroup = groupBy ? `GROUP BY ${groupBy}` : '';
     let descWhere = '';
     let descJoins = '';
-    
+    const params: any[] = [];
     fields.map((row, index) => {
       let separador = index == 0 ? '' : ', ';
       camposSelect += separador + row.field + ' as ' + row.name;
     });
   
-    if (where && where.length > 0) {
-      where.map((row, index) => {
-        let auxilizar = '';
-        row.value = SQLInjection(row.value);
-  
-        if (row.operadorLogico == 'like') {
-          auxilizar = '%';
-        }
-  
-        if (row.operadorLogico == 'beetwen') {
-          camposWhere += row.condicao + ' ' + row.field + ' ' + row.operadorLogico + ' ' + "'" + row.value.toUpperCase() + "'" + ' AND ' + "'" + row.value?.toUpperCase() + "'";
-        }
-  
-        if (index == 0 && row.operadorLogico != 'beetwen') {
-          camposWhere += row.field + ' ' + row.operadorLogico + ' ' + "'" + row.value.toUpperCase() + "" + auxilizar + "' ";
-        } else if (row.operadorLogico != 'beetwen') {
-          camposWhere += row.condicao + ' ' + row.field + ' ' + row.operadorLogico + ' ' + "'" + row.value.toUpperCase() + "" + auxilizar + "' ";
+    if (where) {
+      descWhere = 'WHERE ';
+      where.map((row, index) => { 
+        row.condition = row.condition ? row.condition : 'AND';
+        row.logicalOperator = row.logicalOperator ? row.logicalOperator : '=';
+        descWhere += index != 0 ? ` ${row.condition}` : '';
+        if (row.logicalOperator == 'between') {
+          descWhere += ` ${row.field} ${row.logicalOperator} ? AND ?`;  
+          params.push(row.initialDate);
+          params.push(row.finalDate);
+        } else {
+          descWhere += ` ${row.field} ${row.logicalOperator} ?`;
+          params.push(row.value);
         }
       });
     }
@@ -61,58 +87,34 @@ class Querys {
         descJoins += `${row.type} ${row.table} as ${row.table} on ${row.description} `;
       }); 
     }
-  
-    if (first != undefined && first != 0) {
-      descFirst = `FIRST ${first}`;
-    }
-  
-    if (orderBy != undefined && orderBy != '') {
-      descOrdem = `ORDER BY ${orderBy}`;
-    }
-  
-    if (groupBy != undefined && groupBy != '') {
-      descGroup = `GROUP BY ${groupBy}`;
-    }
-  
-    if (camposWhere != '') {
-      descWhere = `WHERE ${camposWhere}`;
-    }
-  
+
     SQL = `SELECT ${descFirst} ${camposSelect} FROM ${table} as ${table} ${descJoins} ${descWhere} ${descGroup} ${descOrdem}`; 
-    return SQL;
+    return {SQL: SQL, params: params, fields: fields};
   }
 
-  Delete({table, where}: iPropsDelete): string {
+  Delete({table, where}: iPropsDelete): {SQL: string, params: any} {
     let SQL = '';
-    let camposWhere = '';
     let descWhere = '';
-    where.map((row, index) => {
-      row.condicao = row.condicao ? row.condicao : 'AND';
-      row.valor = SQLInjection(row.valor);
-      if (index == 0) {
-        camposWhere += row.campo + ' ' + row.operadorLogico + ' ' + "'" + row.valor + "' ";
-      } else {
-        camposWhere += row.condicao + ' ' + row.campo + ' ' + row.operadorLogico + ' ' + "'" + row.valor + "' ";
-      }
-    });
-    descWhere = `WHERE ${camposWhere}`;
+    const params: any = [];
+    if (where) {
+      descWhere = 'WHERE ';
+      where.map((row, index) => {
+        row.condition = row.condition ? row.condition : 'AND';
+        row.logicalOperator = row.logicalOperator ? row.logicalOperator : '=';
+        descWhere += index != 0 ? ` ${row.condition}` : '';
+        if (row.logicalOperator == 'between') {
+          descWhere += ` ${row.field} ${row.logicalOperator} ? AND ?`;  
+          params.push(row.initialDate);
+          params.push(row.finalDate);
+        } else {
+          descWhere += ` ${row.field} ${row.logicalOperator} ?`;
+          params.push(row.value);
+        }
+      });
+    }
     SQL = `DELETE FROM ${table} ${descWhere}`;
-    return SQL;
+    return {SQL: SQL, params: params};
   }
 }
 
-function SQLInjection(value: string): string {
-  Characters.map(character => {
-    try {
-      let replace = new RegExp(character.caracter, 'g');
-      value = value.replace(replace, character.replace);
-      return value;
-    } catch (err) {
-      value = value.replace(character.caracter, character.replace);
-      return value;
-    } finally { return value; }
-  });
-  return value;
-}
-
-export default new Querys;
+export default Querys;
